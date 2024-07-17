@@ -3,53 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GineRisk - Avaliação de Risco Ginecológico</title>
+    <title>GineRisk - Analisador de Risco Ginecológico</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 0 auto; padding: 20px; }
-        h1 { color: #2c3e50; }
-        textarea { width: 100%; height: 150px; margin-bottom: 10px; }
-        button { background-color: #3498db; color: white; padding: 10px 20px; border: none; cursor: pointer; }
-        button:hover { background-color: #2980b9; }
-        #result { margin-top: 20px; display: flex; flex-wrap: wrap; }
-        .model-result { flex: 1; min-width: 300px; margin: 10px; padding: 10px; border: 1px solid #ddd; }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #results {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .developer {
+            text-align: center;
+            font-style: italic;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-    <h1>GineRisk - Avaliação de Risco Ginecológico</h1>
-    <p>Desenvolvido por Thiago Roque Ragazzo</p>
-    <textarea id="anamnesis" placeholder="Insira o texto da anamnese aqui..."></textarea>
-    <button onclick="processAnamnesis()">Processar Anamnese</button>
-    <div id="result"></div>
+    <h1>GineRisk - Analisador de Risco Ginecológico</h1>
+    <textarea id="anamnesis" placeholder="Insira a anamnese aqui..."></textarea>
+    <select id="riskType">
+        <option value="preeclampsia">Pré-eclâmpsia</option>
+        <option value="gestational_diabetes">Diabetes Gestacional</option>
+        <option value="preterm_birth">Parto Prematuro</option>
+        <option value="fetal_growth_restriction">Restrição de Crescimento Fetal</option>
+        <option value="chromosomal_anomalies">Anomalias Cromossômicas</option>
+    </select>
+    <button onclick="processAnamnesis()">Analisar</button>
+    <div id="results"></div>
+    <p class="developer">Desenvolvido por Thiago Roque Ragazzo</p>
 
     <script>
-        function processAnamnesis() {
+        async function processAnamnesis() {
             const anamnesis = document.getElementById('anamnesis').value;
-            fetch('/process', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ text: anamnesis }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                let resultHTML = '';
-                for (const [model, modelData] of Object.entries(data.structured_data)) {
-                    resultHTML += `
-                        <div class="model-result">
-                            <h3>${model}</h3>
-                            <h4>Dados Estruturados:</h4>
-                            <pre>${JSON.stringify(modelData, null, 2)}</pre>
-                            <h4>Avaliação de Risco:</h4>
-                            <pre>${JSON.stringify(data.risk_assessments[model], null, 2)}</pre>
-                        </div>
-                    `;
+            const riskType = document.getElementById('riskType').value;
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<p>Processando...</p>';
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ anamnesis, risk_type: riskType }),
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                document.getElementById('result').innerHTML = resultHTML;
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-            });
+                const data = await response.json();
+                resultsDiv.innerHTML = `
+                    <h2>Resultados:</h2>
+                    <p><strong>Risco:</strong> ${data.risks.risk}</p>
+                    <p><strong>Explicação:</strong> ${data.explanation}</p>
+                `;
+            } catch (error) {
+                console.error('Erro:', error);
+                resultsDiv.innerHTML = `<p>Erro ao processar a anamnese: ${error.message}</p>`;
+            }
         }
     </script>
 </body>
