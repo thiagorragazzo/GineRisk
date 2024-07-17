@@ -1,0 +1,11 @@
+### Requirements.txt
+
+```plaintext
+Flask
+transformers
+torch
+numpy
+scikit-learn
+pandas
+spacy
+pt_core_news_lg
