@@ -1,28 +1,36 @@
-import pandas as pd
+from src.models.ner_model import MultiModelNER
 
 class DataProcessor:
-    def structure_data(self, entities):
-        structured_data = {
-            "idade": None,
-            "peso": None,
-            "altura": None,
+    def __init__(self):
+        self.ner_model = MultiModelNER()
+
+    def structure_data(self, text):
+        entities = self.ner_model.extract_entities(text)
+        rule_based_entities = self.ner_model.rule_based_extraction(text)
+        
+        structured_data = {model: self.process_model_entities(model_entities, rule_based_entities) 
+                           for model, model_entities in entities.items()}
+        
+        return structured_data
+
+    def process_model_entities(self, model_entities, rule_based_entities):
+        processed_data = {
+            "idade": rule_based_entities.get("idade"),
+            "peso": rule_based_entities.get("peso"),
+            "altura": rule_based_entities.get("altura"),
             "imc": None,
             "pressao_arterial": None,
-            "historico_familiar": [],
-            "condicoes_preexistentes": [],
+            "historico_familiar": rule_based_entities.get("historico_familiar", []),
+            "condicoes_preexistentes": rule_based_entities.get("condicoes_preexistentes", []),
             "medicacoes": [],
         }
         
-        for entity in entities:
-            if entity["type"] == "AGE":
-                structured_data["idade"] = int(entity["text"])
-            elif entity["type"] == "WEIGHT":
-                structured_data["peso"] = float(entity["text"].split()[0])
-            elif entity["type"] == "HEIGHT":
-                structured_data["altura"] = float(entity["text"].split()[0])
-            # Adicione mais mapeamentos conforme necessário
+        # Add model-specific entities
+        for entity_type, values in model_entities.items():
+            if entity_type.lower() in processed_data:
+                processed_data[entity_type.lower()] = values[0] if values else None
         
-        if structured_data["peso"] and structured_data["altura"]:
-            structured_data["imc"] = structured_data["peso"] / ((structured_data["altura"] / 100) ** 2)
+        if processed_data["peso"] and processed_data["altura"]:
+            processed_data["imc"] = processed_data["peso"] / ((processed_data["altura"] / 100) ** 2)
         
-        return structured_data
+        return processed_data
